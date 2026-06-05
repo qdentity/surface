@@ -233,16 +233,28 @@ defmodule Surface.API do
     props_by_name = for p <- props, into: %{}, do: {p.name, p}
     required_props_names = for %{name: name, opts: opts} <- props, opts[:required], do: name
 
+    get_prop_func =
+      if map_size(props_by_name) == 0 do
+        quote do
+          @doc false
+          def __get_prop__(_name), do: nil
+        end
+      else
+        quote do
+          @doc false
+          def __get_prop__(name) do
+            Map.get(unquote(Macro.escape(props_by_name)), name)
+          end
+        end
+      end
+
     quote do
       @doc false
       def __props__() do
         unquote(Macro.escape(props))
       end
 
-      @doc false
-      def __get_prop__(name) do
-        Map.get(unquote(Macro.escape(props_by_name)), name)
-      end
+      unquote(get_prop_func)
 
       @doc false
       def __required_props_names__() do
@@ -263,6 +275,21 @@ defmodule Surface.API do
 
     assigned_slots_by_parent = Module.get_attribute(env.module, :assigned_slots_by_parent) || %{}
 
+    get_slot_func =
+      if map_size(slots_by_name) == 0 do
+        quote do
+          @doc false
+          def __get_slot__(_name), do: nil
+        end
+      else
+        quote do
+          @doc false
+          def __get_slot__(name) do
+            Map.get(unquote(Macro.escape(slots_by_name)), name)
+          end
+        end
+      end
+
     quote do
       @doc false
       def __slots__() do
@@ -274,10 +301,7 @@ defmodule Surface.API do
         prop in unquote(slots_names)
       end
 
-      @doc false
-      def __get_slot__(name) do
-        Map.get(unquote(Macro.escape(slots_by_name)), name)
-      end
+      unquote(get_slot_func)
 
       @doc false
       def __assigned_slots_by_parent__() do
